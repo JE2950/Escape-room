@@ -894,7 +894,8 @@ function startGame() {
   state = { room: 0, puzzle: 0, score: 0, totalQ: 0, attempts: 0, orderPlaced: [], answered: false };
   showScreen('screen-puzzle');
   buildHudProgress();
-  showRoomSplash(0, () => renderPuzzle());
+  renderPuzzle();          // render content FIRST so screen isn't blank
+  showRoomSplash(0);       // then show splash briefly on top
 }
 
 function restartGame() {
@@ -931,17 +932,14 @@ function updateHud() {
   });
 }
 
-function showRoomSplash(roomIdx, cb) {
+function showRoomSplash(roomIdx) {
   const room = ROOMS[roomIdx];
   const splash = document.getElementById('roomSplash');
   document.getElementById('splashIcon').textContent = room.icon;
   document.getElementById('splashTitle').textContent = `Room ${room.id}: ${room.name}`;
   document.getElementById('splashSub').textContent = room.subtitle;
   splash.classList.add('show');
-  setTimeout(() => {
-    splash.classList.remove('show');
-    setTimeout(cb, 400);
-  }, 1600);
+  setTimeout(() => { splash.classList.remove('show'); }, 1800);
 }
 
 // ══════════════════════════════════════════════
@@ -1223,10 +1221,12 @@ function nextPuzzle() {
     state.room++;
     state.puzzle = 0;
     if (state.room >= ROOMS.length) {
-      // Game complete!
       showVictory();
     } else {
-      showRoomSplash(state.room, () => { updateHud(); renderPuzzle(); });
+      updateHud();
+      renderPuzzle();                    // render new room content first
+      showRoomSplash(state.room);        // then show splash on top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   } else {
     renderPuzzle();
