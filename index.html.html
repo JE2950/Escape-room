@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuga Romana — Roman Escape Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --stone:    #2a2218;
+  --stone-mid:#3d3020;
+  --stone-lt: #5c4a30;
+  --parch:    #f0e6c8;
+  --parch-dk: #d4c49a;
+  --gold:     #c8960a;
+  --gold-lt:  #e8b820;
+  --blood:    #8b1a1a;
+  --blood-lt: #c44;
+  --toga:     #f5f0e8;
+  --ink:      #1a1208;
+  --shadow:   rgba(0,0,0,0.6);
+  --green:    #2d6b3c;
+  --green-lt: #4a9b5a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Crimson Pro', Georgia, serif;
+  background: var(--stone);
+  color: var(--parch);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Stone texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(200,150,10,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ── TITLE SCREEN ── */
+#screen-title {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  background:
+    linear-gradient(180deg, rgba(26,18,8,0.95) 0%, rgba(42,34,24,0.9) 100%);
+}
+
+.title-emblem {
+  font-size: 5rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 20px rgba(200,150,10,0.5));
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%,100% { filter: drop-shadow(0 0 15px rgba(200,150,10,0.4)); }
+  50%      { filter: drop-shadow(0 0 30px rgba(200,150,10,0.8)); }
+}
+
+.title-latin {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--gold-lt);
+  text-shadow: 0 0 40px rgba(200,150,10,0.4), 0 2px 8px rgba(0,0,0,0.8);
+  line-height: 1.1;
+}
+.title-sub {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  color: var(--parch-dk);
+  margin-top: 6px;
+  margin-bottom: 32px;
+}
+.title-divider {
+  width: 180px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 0 auto 28px;
+}
+.title-intro {
+  max-width: 520px;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--parch-dk);
+  margin: 0 auto 36px;
+  font-style: italic;
+}
+.title-intro strong {
+  color: var(--gold-lt);
+  font-style: normal;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-block;
+  padding: 13px 36px;
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-lt) 50%, var(--gold) 100%);
+  color: var(--ink);
+  box-shadow: 0 4px 20px rgba(200,150,10,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(200,150,10,0.5);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--parch-dk);
+  border: 1px solid rgba(212,196,154,0.3);
+}
+.btn-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold-lt);
+}
+.btn-danger {
+  background: linear-gradient(135deg, var(--blood) 0%, var(--blood-lt) 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(139,26,26,0.4);
+}
+
+/* ── HUD (shown during puzzles) ── */
+#hud {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(26,18,8,0.96);
+  border-bottom: 1px solid rgba(200,150,10,0.25);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+}
+.hud-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  flex: 1;
+}
+.hud-progress {
+  display: flex;
+  gap: 6px;
+}
+.hud-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(200,150,10,0.15);
+  border: 1px solid rgba(200,150,10,0.3);
+  transition: all 0.3s;
+}
+.hud-dot.done {
+  background: var(--gold);
+  border-color: var(--gold-lt);
+  box-shadow: 0 0 6px rgba(200,150,10,0.5);
+}
+.hud-dot.current {
+  background: rgba(200,150,10,0.4);
+  border-color: var(--gold-lt);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.3); }
+}
+.hud-score {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: var(--parch-dk);
+  white-space: nowrap;
+}
+.hud-score span { color: var(--gold-lt); font-weight: 600; }
+
+/* ── PUZZLE SCREEN ── */
+#screen-puzzle {
+  padding: 0;
+}
+.puzzle-body {
+  flex: 1;
+  padding: 28px 20px 40px;
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.puzzle-room-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+.puzzle-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--gold-lt);
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+.puzzle-flavour {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--parch-dk);
+  line-height: 1.6;
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  border-left: 3px solid var(--blood);
+  border-radius: 0 4px 4px 0;
+}
+
+.puzzle-scene {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(200,150,10,0.15);
+  border-radius: 6px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+/* Latin sentence display */
+.latin-sentence {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  color: var(--toga);
+  text-align: center;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+.grammar-note {
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--parch-dk);
+  opacity: 0.6;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+/* Puzzle types */
+.task-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+/* Multiple choice */
+.choices {
+  display: grid;
+  gap: 9px;
+}
+.choice-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,150,10,0.2);
+  border-radius: 5px;
+  color: var(--parch);
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.02rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.choice-btn:hover:not(:disabled) {
+  background: rgba(200,150,10,0.1);
+  border-color: rgba(200,150,10,0.5);
+  transform: translateX(3px);
+}
+.choice-btn .choice-key {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  color: var(--gold);
+  opacity: 0.7;
+  min-width: 18px;
+  font-weight: 600;
+}
+.choice-btn.correct {
+  background: rgba(45,107,60,0.25);
+  border-color: var(--green-lt);
+  color: #a8f0b0;
+}
+.choice-btn.wrong {
+  background: rgba(139,26,26,0.25);
+  border-color: var(--blood-lt);
+  color: #f0a0a0;
+}
+.choice-btn:disabled { cursor: default; }
+
+/* Word drag / click-to-order */
+.word-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.word-token {
+  padding: 6px 13px;
+  background: rgba(200,150,10,0.12);
+  border: 1px solid rgba(200,150,10,0.35);
+  border-radius: 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.88rem;
+  color: var(--gold-lt);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.word-token:hover { background: rgba(200,150,10,0.25); transform: translateY(-2px); }
+.word-token.used { opacity: 0.25; pointer-events: none; }
+.word-token.selected { background: rgba(200,150,10,0.35); border-color: var(--gold-lt); }
+
+.answer-slots {
+  min-height: 46px;
+  border: 1px dashed rgba(200,150,10,0.3);
+  border-radius: 5px;
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: rgba(0,0,0,0.2);
+  margin-bottom: 14px;
+}
+.answer-slots .placed-token {
+  padding: 5px 12px;
+  background: rgba(200,150,10,0.2);
+  border: 1px solid rgba(200,150,10,0.4);
+  border-radius: 16px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  color: var(--gold-lt);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.answer-slots .placed-token:hover { background: rgba(139,26,26,0.3); border-color: var(--blood-lt); }
+.slot-placeholder { font-style: italic; font-size: 0.85rem; color: rgba(212,196,154,0.3); }
+
+/* Text input */
+.answer-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(200,150,10,0.25);
+  border-radius: 5px;
+  color: var(--parch);
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.1rem;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-text-fill-color: var(--parch);
+  caret-color: var(--gold-lt);
+  margin-bottom: 12px;
+}
+.answer-input::placeholder { color: rgba(212,196,154,0.3); -webkit-text-fill-color: rgba(212,196,154,0.3); }
+.answer-input:focus { border-color: var(--gold); }
+.answer-input.correct { border-color: var(--green-lt); background: rgba(45,107,60,0.15); }
+.answer-input.wrong   { border-color: var(--blood-lt); background: rgba(139,26,26,0.15); }
+
+/* Feedback */
+.feedback-box {
+  padding: 12px 16px;
+  border-radius: 5px;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  display: none;
+}
+.feedback-box.show { display: block; }
+.feedback-box.correct {
+  background: rgba(45,107,60,0.2);
+  border: 1px solid rgba(74,155,90,0.4);
+  color: #b0f0b8;
+}
+.feedback-box.wrong {
+  background: rgba(139,26,26,0.2);
+  border: 1px solid rgba(196,68,68,0.4);
+  color: #f0b0b0;
+}
+.feedback-box.hint {
+  background: rgba(200,150,10,0.1);
+  border: 1px solid rgba(200,150,10,0.3);
+  color: var(--parch-dk);
+}
+
+.attempt-dots {
+  display: flex; gap: 5px; margin-bottom: 12px;
+}
+.attempt-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(200,150,10,0.15);
+  border: 1px solid rgba(200,150,10,0.3);
+}
+.attempt-dot.used.correct { background: var(--green-lt); border-color: var(--green-lt); }
+.attempt-dot.used.wrong   { background: var(--blood-lt); border-color: var(--blood-lt); }
+
+/* Word highlight helper */
+.word-hl {
+  color: var(--gold-lt);
+  font-style: italic;
+}
+.case-hl {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.82em;
+  font-style: normal;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.05em;
+}
+.case-nom { background: rgba(45,107,60,0.3); color: #9cf0a8; }
+.case-acc { background: rgba(26,75,139,0.3); color: #90b8f0; }
+.case-gen { background: rgba(120,50,120,0.3); color: #d090f0; }
+
+/* ── ROOM TRANSITION ── */
+.room-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--stone);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+.room-splash.show { opacity: 1; pointer-events: all; }
+.room-splash-icon { font-size: 4rem; margin-bottom: 16px; }
+.room-splash-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 700;
+  color: var(--gold-lt);
+  margin-bottom: 8px;
+}
+.room-splash-sub {
+  font-style: italic;
+  color: var(--parch-dk);
+  font-size: 1rem;
+  max-width: 380px;
+}
+
+/* ── VICTORY SCREEN ── */
+#screen-victory {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  background: radial-gradient(ellipse at center, rgba(200,150,10,0.08) 0%, transparent 70%);
+}
+.victory-icon { font-size: 5rem; margin-bottom: 16px; animation: victory-spin 1s ease-out; }
+@keyframes victory-spin {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.victory-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 900;
+  color: var(--gold-lt);
+  margin-bottom: 8px;
+  text-shadow: 0 0 30px rgba(200,150,10,0.5);
+}
+.victory-sub {
+  font-size: 1.1rem;
+  color: var(--parch-dk);
+  margin-bottom: 28px;
+  font-style: italic;
+}
+.score-display {
+  font-family: 'Cinzel', serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--gold-lt);
+  margin-bottom: 6px;
+}
+.score-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  color: var(--parch-dk);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+/* ── GRAMMAR HELP PANEL ── */
+.help-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(200,150,10,0.1);
+  border: 1px solid rgba(200,150,10,0.2);
+  border-radius: 3px;
+  color: var(--parch-dk);
+  font-size: 0.8rem;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: all 0.15s;
+}
+.help-btn:hover { background: rgba(200,150,10,0.2); color: var(--gold-lt); }
+
+.grammar-help {
+  display: none;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(200,150,10,0.15);
+  border-radius: 5px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--parch-dk);
+}
+.grammar-help.show { display: block; }
+.grammar-help strong { color: var(--gold-lt); }
+.grammar-help table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.grammar-help td, .grammar-help th {
+  padding: 3px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(200,150,10,0.1);
+  font-size: 0.83rem;
+}
+.grammar-help th { color: var(--gold); font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.08em; }
+
+/* Responsive */
+@media(max-width:480px) {
+  .puzzle-body { padding: 20px 14px 32px; }
+  .puzzle-scene { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ROOM TRANSITION SPLASH -->
+<div class="room-splash" id="roomSplash">
+  <div class="room-splash-icon" id="splashIcon">🏛</div>
+  <div class="room-splash-title" id="splashTitle">Room I</div>
+  <div class="room-splash-sub" id="splashSub">The Forum Awaits</div>
+</div>
+
+<!-- TITLE SCREEN -->
+<div class="screen active" id="screen-title">
+  <div class="title-emblem">🏛</div>
+  <div class="title-latin">Fuga Romana</div>
+  <div class="title-sub">A Roman Escape Room</div>
+  <div class="title-divider"></div>
+  <p class="title-intro">
+    You are a <strong>captivus</strong> in the city of <strong>Roma</strong>.
+    The <strong>servus</strong> of a powerful <strong>dominus</strong> has locked the gates.
+    To escape, you must prove your Latin — answer correctly to unlock each room
+    and reach the <strong>via</strong> to freedom.
+    <br><br>
+    Five rooms. Five challenges. One escape.
+  </p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:28px">
+    <button class="btn btn-gold" onclick="startGame()">▶ Intra — Enter</button>
+  </div>
+  <div style="font-size:0.8rem;color:rgba(212,196,154,0.4);letter-spacing:0.1em;font-family:'Cinzel',serif">
+    LEVEL 1 SYLLABUS · PRESENT TENSE ONLY
+  </div>
+</div>
+
+<!-- PUZZLE SCREEN -->
+<div class="screen" id="screen-puzzle">
+  <div id="hud">
+    <div class="hud-title" id="hudTitle">Room I</div>
+    <div class="hud-progress" id="hudProgress"></div>
+    <div class="hud-score">Score: <span id="hudScore">0</span></div>
+  </div>
+  <div class="puzzle-body" id="puzzleBody">
+    <!-- Puzzle content rendered here -->
+  </div>
+</div>
+
+<!-- VICTORY SCREEN -->
+<div class="screen" id="screen-victory">
+  <div class="victory-icon">🏆</div>
+  <div class="victory-title">Libertas!</div>
+  <div class="victory-sub">You have escaped the city of Rome!</div>
+  <div class="score-display" id="finalScore">0 / 0</div>
+  <div class="score-label">Correct Answers</div>
+  <div style="max-width:420px;margin-bottom:32px;font-style:italic;color:var(--parch-dk);font-size:0.95rem;line-height:1.6" id="victoryMessage"></div>
+  <button class="btn btn-gold" onclick="restartGame()">↺ Play Again</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// GAME DATA — 5 ROOMS, 3 PUZZLES EACH
+// All vocab L1, present tense only
+// ══════════════════════════════════════════════
+
+const ROOMS = [
+  {
+    id: 1,
+    icon: '🏛',
+    name: 'Forum Romanum',
+    subtitle: 'The Marketplace',
+    intro: 'You wake in the Forum. A merchant eyes you suspiciously. Voices echo off the marble columns. You must understand what they say to find the gate.',
+    puzzles: [
+      // Puzzle 1-1: Translate a word
+      {
+        type: 'mc',
+        question: 'The merchant shouts at you. What does he mean?',
+        latin: 'Festina! Nauta aquam portat.',
+        grammarNote: 'Present tense: portat = he/she carries (verb 1, 3rd sing.)',
+        choices: [
+          { text: 'Hurry! The sailor is carrying water.', correct: true },
+          { text: 'Stop! The farmer is carrying fire.', correct: false },
+          { text: 'Hurry! The farmer is carrying food.', correct: false },
+          { text: 'Stop! The sailor is carrying gold.', correct: false }
+        ],
+        help: { title: 'Verb 1: porto (I carry)', rows: [['porto','I carry'],['portas','you carry'],['portat','he/she carries'],['portamus','we carry'],['portatis','you (pl.) carry'],['portant','they carry']] },
+        correct_fb: 'Bene! festina = hurry, nauta = sailor, aquam = water (accusative), portat = he carries.',
+        wrong_fb: 'Remember: nauta = sailor, aqua = water, portat = he/she carries (present tense).'
+      },
+      // Puzzle 1-2: Word order
+      {
+        type: 'order',
+        question: 'Unscramble the message scrawled on the wall:',
+        english: 'The slave is in the garden.',
+        tokens: ['servus', 'in', 'horto', 'est'],
+        answer: ['servus', 'in', 'horto', 'est'],
+        help: { title: 'est = is (from sum)', note: 'servus = slave (nom.), hortus → horto (ablative after in = in/on)' },
+        correct_fb: 'Optime! Servus in horto est. In + ablative = location. Hortus → horto.',
+        wrong_fb: 'Hint: servus (slave) is the subject. In takes the ablative: hortus → horto.'
+      },
+      // Puzzle 1-3: Fill in the gap
+      {
+        type: 'fillin',
+        question: 'Complete the guard\'s warning:',
+        template: 'Dominus servum ____.',
+        wordbank: ['videt', 'videtur', 'videtis', 'video'],
+        answer: 'videt',
+        help: { title: 'video (I see) — verb 2', rows: [['video','I see'],['vides','you see'],['videt','he/she sees'],['videmus','we see'],['videtis','you (pl.) see'],['vident','they see']] },
+        correct_fb: 'Recte! videt = he/she sees. Dominus (nom.) videt servum (acc.).',
+        wrong_fb: 'The master is the subject (one person). Use the 3rd person singular: videt.'
+      }
+    ]
+  },
+  {
+    id: 2,
+    icon: '⚔️',
+    name: 'Castra Militum',
+    subtitle: 'The Soldiers\' Camp',
+    intro: 'A Roman soldier bars the way. He tests you with questions about his comrades. Answer correctly — soldiers have little patience for hesitation.',
+    puzzles: [
+      {
+        type: 'mc',
+        question: 'The soldier describes the battle. What is happening?',
+        latin: 'Milites in campo pugnant. Dux gladium tenet.',
+        grammarNote: 'pugnant = they fight (3rd pl.); tenet = he holds (3rd sing.)',
+        choices: [
+          { text: 'Soldiers fight in the field. The general holds a sword.', correct: true },
+          { text: 'Soldiers stand in the camp. The general carries a shield.', correct: false },
+          { text: 'Soldiers run in the forum. The general has a spear.', correct: false },
+          { text: 'Soldiers sit in the garden. The general sees a sword.', correct: false }
+        ],
+        help: { title: 'Key words', note: 'miles (soldier), campus (field), pugno (I fight), dux (general/leader), gladius (sword), teneo (I hold)' },
+        correct_fb: 'Euge! pugnant = they fight, dux = the general/leader, gladium = sword (accusative), tenet = he holds.',
+        wrong_fb: 'miles → milites = soldiers; campus = field; pugno → pugnant = they fight; dux = general; gladius → gladium (acc.) = sword.'
+      },
+      {
+        type: 'translate_word',
+        question: 'The soldier demands a password. What Latin word means this?',
+        english: 'I am present / I am here',
+        choices: [
+          { text: 'adsum', correct: true },
+          { text: 'absum', correct: false },
+          { text: 'sum', correct: false },
+          { text: 'adeo', correct: false }
+        ],
+        help: { title: 'sum and compounds', note: 'sum = I am · adsum = I am present · absum = I am away' },
+        correct_fb: 'Adsum! Exactly right — adsum = I am present, from ad (to/at) + sum.',
+        wrong_fb: 'ad + sum → adsum = I am at/present. absum = I am away (ab = away from).'
+      },
+      {
+        type: 'mc',
+        question: 'The soldier asks about his commander\'s order:',
+        latin: 'Dux milites ad murum ducit.',
+        grammarNote: 'ducit = he leads (verb 3, 3rd sing.); ad + accusative = to/towards',
+        choices: [
+          { text: 'The general leads the soldiers to the wall.', correct: true },
+          { text: 'The general calls the soldiers from the gate.', correct: false },
+          { text: 'The soldier leads the general through the town.', correct: false },
+          { text: 'The general orders the soldiers into the field.', correct: false }
+        ],
+        help: { title: 'duco (I lead) — verb 3', rows: [['duco','I lead'],['ducis','you lead'],['ducit','he/she leads'],['ducimus','we lead'],['ducitis','you (pl.) lead'],['ducunt','they lead']] },
+        correct_fb: 'Optime! ad murum = to the wall (ad + accusative). ducit = he leads.',
+        wrong_fb: 'dux = general (subject); ad = to; murus → murum (acc.) = wall; ducit = he leads.'
+      }
+    ]
+  },
+  {
+    id: 3,
+    icon: '🏠',
+    name: 'Villa Magna',
+    subtitle: 'The Great House',
+    intro: 'You creep through the courtyard of a grand villa. The master\'s family move through the rooms. Listen carefully — and do not be caught.',
+    puzzles: [
+      {
+        type: 'order',
+        question: 'Rearrange the servants\' conversation:',
+        english: 'The girl carries food into the house.',
+        tokens: ['puella', 'cibum', 'in', 'villam', 'portat'],
+        answer: ['puella', 'cibum', 'in', 'villam', 'portat'],
+        help: { title: 'Word order tip', note: 'In Latin, the verb often comes last. Subject (nom.) → object (acc.) → verb. In + accusative = movement INTO somewhere.' },
+        correct_fb: 'Bene! puella (nom.) portat cibum (acc.) in villam (acc. after in = movement into).',
+        wrong_fb: 'puella = girl (subject). cibum = food (object, accusative). in villam = into the house (acc. = motion). portat = carries.'
+      },
+      {
+        type: 'fillin',
+        question: 'The mistress calls out. Fill in what she says:',
+        template: 'Filia mea in villa ____.',
+        wordbank: ['manet', 'manes', 'maneo', 'manent'],
+        answer: 'manet',
+        help: { title: 'maneo (I remain/stay) — verb 2', rows: [['maneo','I remain'],['manes','you remain'],['manet','he/she remains'],['manemus','we remain'],['manetis','you (pl.) remain'],['manent','they remain']] },
+        correct_fb: 'Recte! filia = daughter, mea = my, manet = she remains/stays (3rd sing.).',
+        wrong_fb: 'filia mea = my daughter (one person, feminine). Use the 3rd singular: manet.'
+      },
+      {
+        type: 'mc',
+        question: 'You overhear the master:',
+        latin: 'Vir iratus filium vocat et servum terret.',
+        grammarNote: 'vocat = he calls; terret = he frightens',
+        choices: [
+          { text: 'The angry man calls his son and frightens the slave.', correct: true },
+          { text: 'The angry man sees his daughter and calls the slave.', correct: false },
+          { text: 'The wretched man calls his son and praises the slave.', correct: false },
+          { text: 'The tired man calls his son and moves the slave.', correct: false }
+        ],
+        help: { title: 'Key words', note: 'vir = man; iratus = angry; filius → filium (acc.) = son; voco (I call); servus → servum (acc.) = slave; terreo (I frighten)' },
+        correct_fb: 'Euge! iratus = angry, filium = son (accusative), vocat = he calls, terret = he frightens.',
+        wrong_fb: 'iratus = angry (not miser = wretched, not fessus = tired). terret = he frightens (terreo), laudo = I praise.'
+      }
+    ]
+  },
+  {
+    id: 4,
+    icon: '⚓',
+    name: 'Portus Romanus',
+    subtitle: 'The Roman Harbour',
+    intro: 'You reach the harbour! Ships are loading. But a customs officer stops you. He demands you answer three questions about what you see around you.',
+    puzzles: [
+      {
+        type: 'mc',
+        question: 'The officer reads aloud from his tablet:',
+        latin: 'Nautae ad insulam navigant quod ventus bonus est.',
+        grammarNote: 'quod = because; navigant = they sail; est = is',
+        choices: [
+          { text: 'The sailors sail to the island because the wind is good.', correct: true },
+          { text: 'The sailors sail from the island because the wind is bad.', correct: false },
+          { text: 'The sailors sail through the waves because the sea is calm.', correct: false },
+          { text: 'The sailors sail around the island because the water is good.', correct: false }
+        ],
+        help: { title: 'Prepositions + case', note: 'ad + accusative = to/towards · a/ab + ablative = from/by · quod = because (conjunction)' },
+        correct_fb: 'Optime! ad insulam = to the island (acc.), quod = because, ventus bonus est = the wind is good.',
+        wrong_fb: 'ad = to (not from). ventus = wind, bonus = good. quod = because.'
+      },
+      {
+        type: 'translate_word',
+        question: 'The officer points at the cargo. What does he call it?',
+        english: 'gold',
+        choices: [
+          { text: 'aurum', correct: true },
+          { text: 'argentum', correct: false },
+          { text: 'pecunia', correct: false },
+          { text: 'consilium', correct: false }
+        ],
+        help: { title: 'Neuter nouns (2nd decl.)', note: 'aurum = gold · pecunia = money · consilium = plan/advice' },
+        correct_fb: 'Recte! aurum = gold (neuter noun, 2nd declension).',
+        wrong_fb: 'aurum = gold · pecunia = money (coins) · consilium = plan/advice · argentum is not in L1!'
+      },
+      {
+        type: 'order',
+        question: 'A sailor shouts a warning. Put it in order:',
+        english: 'The enemy is attacking the ships now!',
+        tokens: ['hostes', 'naves', 'nunc', 'oppugnant'],
+        answer: ['hostes', 'naves', 'nunc', 'oppugnant'],
+        help: { title: 'oppugno (I attack) — verb 1', note: 'hostes = enemies (nom. pl.) · navis → naves (acc. pl.) = ships · nunc = now (adverb) · oppugnant = they attack' },
+        correct_fb: 'Bene! hostes (nom. pl.) oppugnant naves (acc. pl.). nunc = now.',
+        wrong_fb: 'hostes = enemies (subject). naves = ships (accusative, the object). oppugnant = they attack.'
+      }
+    ]
+  },
+  {
+    id: 5,
+    icon: '🚪',
+    name: 'Porta Libertatis',
+    subtitle: 'The Gate of Freedom',
+    intro: 'The great gate is before you. One final guardian blocks the way — a scholar who demands that you prove your Latin is worthy. Answer all three and the gate swings open.',
+    puzzles: [
+      {
+        type: 'mc',
+        question: 'The scholar reads from a scroll:',
+        latin: 'Magister bonos discipulos laudat, malos discipulos monet.',
+        grammarNote: 'laudat = praises; monet = warns; bonos/malos = good/bad (accusative plural)',
+        choices: [
+          { text: 'The teacher praises the good students, warns the bad students.', correct: true },
+          { text: 'The master praises the good slaves, orders the bad slaves.', correct: false },
+          { text: 'The teacher frightens the good boys, praises the bad boys.', correct: false },
+          { text: 'The farmer praises the good sons, warns the bad daughters.', correct: false }
+        ],
+        help: { title: 'Key vocabulary', note: 'magister = teacher · laudat = he praises · monet = he warns · bonus → bonos (acc. pl. masc.) = good · malus → malos = bad' },
+        correct_fb: 'Euge! magister = teacher, bonos/malos discipulos = good/bad students (accusative), laudat = praises, monet = warns.',
+        wrong_fb: 'magister = teacher (not master/farmer). laudat = praises, monet = warns (not orders/frightens).'
+      },
+      {
+        type: 'fillin',
+        question: 'Complete the scholar\'s final test:',
+        template: 'Puer parvus in via ____ et carmen cantat.',
+        wordbank: ['stat', 'stas', 'statis', 'stant'],
+        answer: 'stat',
+        help: { title: 'sto (I stand) — verb 1', rows: [['sto','I stand'],['stas','you stand'],['stat','he/she stands'],['stamus','we stand'],['statis','you (pl.) stand'],['stant','they stand']] },
+        correct_fb: 'Recte! puer parvus = the small boy (nom.), stat = he stands, carmen cantat = he sings a song.',
+        wrong_fb: 'puer = one boy (subject, masc. sing.). Use the 3rd singular: stat.'
+      },
+      {
+        type: 'mc',
+        question: 'The gate mechanism requires the final answer:',
+        latin: 'Ubi est via ad libertatem?',
+        grammarNote: 'ubi = where?; est = is; ad + accusative = towards',
+        choices: [
+          { text: 'Where is the road to freedom?', correct: true },
+          { text: 'When is the road into the city?', correct: false },
+          { text: 'Why is the street from the temple?', correct: false },
+          { text: 'Where is the wall near the harbour?', correct: false }
+        ],
+        help: { title: 'Question words (L1)', note: 'ubi? = where? · cur? = why? · quid? = what? · quis? = who?' },
+        correct_fb: '🎉 LIBERTAS! ubi = where, via = road/street, ad = to/towards, libertatem = freedom. The gate is open!',
+        wrong_fb: 'ubi = where (not when/why). via = road. ad + acc. = towards. libertas → libertatem (accusative after ad).'
+      }
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════
+let state = {
+  room: 0,
+  puzzle: 0,
+  score: 0,
+  totalQ: 0,
+  attempts: 0,
+  orderPlaced: [],
+  answered: false
+};
+
+const TOTAL_PUZZLES = ROOMS.reduce((s, r) => s + r.puzzles.length, 0);
+
+function startGame() {
+  state = { room: 0, puzzle: 0, score: 0, totalQ: 0, attempts: 0, orderPlaced: [], answered: false };
+  showScreen('screen-puzzle');
+  buildHudProgress();
+  renderPuzzle();          // render content FIRST so screen isn't blank
+  showRoomSplash(0);       // then show splash briefly on top
+}
+
+function restartGame() {
+  showScreen('screen-title');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function buildHudProgress() {
+  const prog = document.getElementById('hudProgress');
+  prog.innerHTML = '';
+  ROOMS.forEach((r, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'hud-dot';
+    dot.id = `hdot-${i}`;
+    prog.appendChild(dot);
+  });
+  updateHud();
+}
+
+function updateHud() {
+  const room = ROOMS[state.room];
+  document.getElementById('hudTitle').textContent = `Room ${room.id}: ${room.name}`;
+  document.getElementById('hudScore').textContent = state.score;
+  ROOMS.forEach((r, i) => {
+    const dot = document.getElementById(`hdot-${i}`);
+    if (!dot) return;
+    dot.className = 'hud-dot';
+    if (i < state.room) dot.classList.add('done');
+    else if (i === state.room) dot.classList.add('current');
+  });
+}
+
+function showRoomSplash(roomIdx) {
+  const room = ROOMS[roomIdx];
+  const splash = document.getElementById('roomSplash');
+  document.getElementById('splashIcon').textContent = room.icon;
+  document.getElementById('splashTitle').textContent = `Room ${room.id}: ${room.name}`;
+  document.getElementById('splashSub').textContent = room.subtitle;
+  splash.classList.add('show');
+  setTimeout(() => { splash.classList.remove('show'); }, 1800);
+}
+
+// ══════════════════════════════════════════════
+// PUZZLE RENDERING
+// ══════════════════════════════════════════════
+function renderPuzzle() {
+  state.attempts = 0;
+  state.answered = false;
+  state.orderPlaced = [];
+
+  const room = ROOMS[state.room];
+  const pz = room.puzzles[state.puzzle];
+  const body = document.getElementById('puzzleBody');
+
+  let html = `
+    <div class="puzzle-room-label">Room ${room.id} / ${room.id}.${state.puzzle + 1} — ${room.name}</div>
+    <div class="puzzle-title">${room.icon} ${room.subtitle}</div>
+    <div class="puzzle-flavour">${state.puzzle === 0 ? room.intro : pz.question}</div>
+  `;
+
+  html += `<div class="puzzle-scene">`;
+
+  if (pz.latin) {
+    html += `<div class="latin-sentence">${pz.latin}</div>`;
+    if (pz.grammarNote) html += `<div class="grammar-note">${pz.grammarNote}</div>`;
+  }
+  if (pz.template) {
+    html += `<div class="latin-sentence">${pz.template}</div>`;
+    if (pz.grammarNote) html += `<div class="grammar-note">${pz.grammarNote}</div>`;
+  }
+  if (pz.english && pz.type === 'order') {
+    html += `<div style="text-align:center;margin-bottom:14px;font-style:italic;color:var(--parch-dk);font-size:0.95rem">English: "${pz.english}"</div>`;
+  }
+
+  html += `<div class="task-label">`;
+  if (pz.type === 'mc' || pz.type === 'translate_word') html += 'Choose the correct answer:';
+  else if (pz.type === 'order') html += 'Tap words to build the Latin sentence:';
+  else if (pz.type === 'fillin') html += 'Choose the correct verb form:';
+  html += `</div>`;
+
+  // Attempt dots (max 3)
+  html += `<div class="attempt-dots" id="attemptDots">`;
+  for (let i = 0; i < 3; i++) html += `<div class="attempt-dot" id="adot-${i}"></div>`;
+  html += `</div>`;
+
+  // Grammar help
+  if (pz.help) {
+    html += `<button class="help-btn" onclick="toggleHelp()">📖 Grammar hint</button>`;
+    html += `<div class="grammar-help" id="gramHelp">`;
+    html += `<strong>${pz.help.title}</strong>`;
+    if (pz.help.note) html += `<br><span style="font-style:italic">${pz.help.note}</span>`;
+    if (pz.help.rows) {
+      html += `<table><tr><th>Form</th><th>Meaning</th></tr>`;
+      pz.help.rows.forEach(r => { html += `<tr><td><em>${r[0]}</em></td><td>${r[1]}</td></tr>`; });
+      html += `</table>`;
+    }
+    html += `</div>`;
+  }
+
+  // Feedback box
+  html += `<div class="feedback-box" id="feedbackBox"></div>`;
+
+  // Multiple choice
+  if (pz.type === 'mc' || pz.type === 'translate_word') {
+    html += `<div class="choices" id="choicesDiv">`;
+    const keys = ['A', 'B', 'C', 'D'];
+    pz.choices.forEach((c, i) => {
+      html += `<button class="choice-btn" id="choice-${i}" onclick="checkMC(${i})">
+        <span class="choice-key">${keys[i]}</span>
+        <span>${c.text}</span>
+      </button>`;
+    });
+    html += `</div>`;
+  }
+
+  // Word order
+  if (pz.type === 'order') {
+    const shuffled = [...pz.tokens].sort(() => Math.random() - 0.5);
+    html += `<div class="answer-slots" id="answerSlots"><span class="slot-placeholder">Tap words below to place them here…</span></div>`;
+    html += `<div class="word-bank" id="wordBank">`;
+    shuffled.forEach((w, i) => {
+      html += `<div class="word-token" id="token-${i}" data-word="${w}" onclick="placeToken(this)">${w}</div>`;
+    });
+    html += `</div>`;
+    html += `<div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-gold" onclick="checkOrder()" style="padding:10px 24px;font-size:0.88rem">Confirma</button>
+      <button class="btn btn-ghost" onclick="clearOrder()" style="padding:10px 16px;font-size:0.88rem">↺ Clear</button>
+    </div>`;
+  }
+
+  // Fill-in (choose from wordbank)
+  if (pz.type === 'fillin') {
+    html += `<div class="choices" id="choicesDiv">`;
+    const keys = ['A', 'B', 'C', 'D'];
+    pz.wordbank.forEach((w, i) => {
+      html += `<button class="choice-btn" id="choice-${i}" onclick="checkFillin('${w}', ${i})">
+        <span class="choice-key">${keys[i]}</span>
+        <span style="font-style:italic;font-family:'Cinzel',serif">${w}</span>
+      </button>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`; // puzzle-scene
+
+  html += `<div id="nextBtnArea" style="margin-top:18px;display:none">
+    <button class="btn btn-gold" onclick="nextPuzzle()">Continua →</button>
+  </div>`;
+
+  body.innerHTML = html;
+  updateHud();
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (state.puzzle === 0 && pz.type !== 'order') {
+    // show question in flavour for first puzzle
+    document.querySelector('.puzzle-flavour').textContent = room.intro;
+  }
+  // Override task label with specific question for non-first puzzles
+  if (state.puzzle > 0 && (pz.type === 'mc' || pz.type === 'translate_word' || pz.type === 'fillin')) {
+    document.querySelector('.puzzle-flavour').textContent = pz.question;
+  }
+}
+
+function toggleHelp() {
+  const h = document.getElementById('gramHelp');
+  if (h) h.classList.toggle('show');
+}
+
+// ── Multiple choice ──
+function checkMC(idx) {
+  if (state.answered) return;
+  const room = ROOMS[state.room];
+  const pz = room.puzzles[state.puzzle];
+  const correct = pz.choices[idx].correct;
+  state.totalQ++;
+  state.attempts++;
+
+  markAttemptDot(state.attempts - 1, correct);
+  const btn = document.getElementById(`choice-${idx}`);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+
+  if (correct) {
+    state.score++;
+    state.answered = true;
+    showFeedback(correct, pz.correct_fb);
+    disableChoices();
+    document.getElementById('nextBtnArea').style.display = '';
+  } else {
+    showFeedback(false, state.attempts >= 3 ? `The answer was: ${pz.choices.find(c=>c.correct).text}<br><em>${pz.wrong_fb}</em>` : pz.wrong_fb);
+    if (state.attempts >= 3) {
+      state.answered = true;
+      disableChoices();
+      // Mark correct one
+      pz.choices.forEach((c, i) => { if (c.correct) document.getElementById(`choice-${i}`).classList.add('correct'); });
+      document.getElementById('nextBtnArea').style.display = '';
+    }
+  }
+}
+
+// ── Fill in ──
+function checkFillin(word, idx) {
+  if (state.answered) return;
+  const room = ROOMS[state.room];
+  const pz = room.puzzles[state.puzzle];
+  const correct = word === pz.answer;
+  state.totalQ++;
+  state.attempts++;
+
+  markAttemptDot(state.attempts - 1, correct);
+  const btn = document.getElementById(`choice-${idx}`);
+  btn.classList.add(correct ? 'correct' : 'wrong');
+
+  if (correct) {
+    state.score++;
+    state.answered = true;
+    showFeedback(true, pz.correct_fb);
+    disableChoices();
+    document.getElementById('nextBtnArea').style.display = '';
+  } else {
+    showFeedback(false, state.attempts >= 3 ? `The correct form is: ${pz.answer}<br><em>${pz.wrong_fb}</em>` : pz.wrong_fb);
+    if (state.attempts >= 3) {
+      state.answered = true;
+      disableChoices();
+      pz.wordbank.forEach((w, i) => { if (w === pz.answer) document.getElementById(`choice-${i}`).classList.add('correct'); });
+      document.getElementById('nextBtnArea').style.display = '';
+    }
+  }
+}
+
+// ── Word order ──
+function placeToken(el) {
+  if (state.answered) return;
+  const word = el.dataset.word;
+  const id = el.id;
+  if (el.classList.contains('used')) return;
+  el.classList.add('used');
+  state.orderPlaced.push({ word, id });
+  renderSlots();
+}
+
+function renderSlots() {
+  const slots = document.getElementById('answerSlots');
+  if (!slots) return;
+  if (state.orderPlaced.length === 0) {
+    slots.innerHTML = '<span class="slot-placeholder">Tap words below to place them here…</span>';
+    return;
+  }
+  slots.innerHTML = state.orderPlaced.map((t, i) =>
+    `<div class="placed-token" onclick="removeToken(${i})">${t.word}</div>`
+  ).join('');
+}
+
+function removeToken(idx) {
+  if (state.answered) return;
+  const removed = state.orderPlaced.splice(idx, 1)[0];
+  const origEl = document.getElementById(removed.id);
+  if (origEl) origEl.classList.remove('used');
+  renderSlots();
+}
+
+function clearOrder() {
+  if (state.answered) return;
+  state.orderPlaced = [];
+  document.querySelectorAll('.word-token').forEach(t => t.classList.remove('used'));
+  renderSlots();
+}
+
+function checkOrder() {
+  if (state.answered) return;
+  const room = ROOMS[state.room];
+  const pz = room.puzzles[state.puzzle];
+  const placed = state.orderPlaced.map(t => t.word);
+  state.totalQ++;
+  state.attempts++;
+
+  const correct = JSON.stringify(placed) === JSON.stringify(pz.answer);
+
+  if (correct) {
+    state.score++;
+    state.answered = true;
+    markAttemptDot(0, true);
+    showFeedback(true, pz.correct_fb);
+    document.getElementById('nextBtnArea').style.display = '';
+  } else {
+    markAttemptDot(state.attempts - 1, false);
+    if (state.attempts >= 3) {
+      state.answered = true;
+      showFeedback(false, `The correct order: <em>${pz.answer.join(' ')}</em><br>${pz.wrong_fb}`);
+      document.getElementById('nextBtnArea').style.display = '';
+    } else {
+      showFeedback(false, pz.wrong_fb);
+    }
+  }
+}
+
+function markAttemptDot(idx, correct) {
+  const dot = document.getElementById(`adot-${idx}`);
+  if (dot) { dot.classList.add('used'); dot.classList.add(correct ? 'correct' : 'wrong'); }
+}
+
+function disableChoices() {
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+}
+
+function showFeedback(correct, msg) {
+  const box = document.getElementById('feedbackBox');
+  box.className = 'feedback-box show ' + (correct ? 'correct' : 'wrong');
+  box.innerHTML = (correct ? '✓ ' : '✗ ') + msg;
+}
+
+// ── Next puzzle / room ──
+function nextPuzzle() {
+  const room = ROOMS[state.room];
+  state.puzzle++;
+
+  if (state.puzzle >= room.puzzles.length) {
+    // Room complete
+    state.room++;
+    state.puzzle = 0;
+    if (state.room >= ROOMS.length) {
+      showVictory();
+    } else {
+      updateHud();
+      renderPuzzle();                    // render new room content first
+      showRoomSplash(state.room);        // then show splash on top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  } else {
+    renderPuzzle();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function showVictory() {
+  showScreen('screen-victory');
+  document.getElementById('finalScore').textContent = `${state.score} / ${state.totalQ}`;
+  const pct = Math.round(state.score / state.totalQ * 100);
+  let msg;
+  if (pct >= 90) msg = 'Excellent! You have demonstrated mastery of Level 1 Latin. Vir doctissimus es!';
+  else if (pct >= 70) msg = 'Well done — you have shown solid knowledge of Level 1 vocabulary and present tense. Keep practising!';
+  else if (pct >= 50) msg = 'You have escaped, but some vocabulary needs more revision. Review your noun cases and verb endings.';
+  else msg = 'You escaped, but the guards nearly caught you! Time to revise your Level 1 vocabulary and present tense forms.';
+  document.getElementById('victoryMessage').textContent = msg;
+}
+</script>
+</body>
+</html>
