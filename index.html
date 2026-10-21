@@ -523,6 +523,13 @@ body::before {
   margin-bottom: 28px;
 }
 
+/* ── HELP TOGGLE (setup) ── */
+.help-toggle { display:flex; align-items:center; gap:10px; margin:0 auto 22px; max-width:420px; cursor:pointer;
+  font-size:0.88rem; color:var(--parch-dk); text-align:left; }
+.help-toggle input { width:18px; height:18px; accent-color:var(--gold); flex-shrink:0; cursor:pointer; }
+.help-toggle strong { color:var(--gold-lt); }
+body.assessment-mode .hud-title::after { content:' · Assessment'; color:var(--gold); font-size:0.75em; }
+
 /* ── GRAMMAR HELP PANEL ── */
 .help-btn {
   display: inline-flex;
@@ -598,6 +605,10 @@ body::before {
   <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:28px">
     <button class="btn btn-gold" onclick="startGame()">▶ Intra — Enter</button>
   </div>
+  <label class="help-toggle" for="helpToggle">
+    <input type="checkbox" id="helpToggle" checked>
+    <span><strong>Grammar &amp; vocab hints</strong> — untick for assessment mode</span>
+  </label>
   <div style="font-size:0.8rem;color:rgba(212,196,154,0.4);letter-spacing:0.1em;font-family:'Cinzel',serif">
     LEVEL 1 SYLLABUS · PRESENT TENSE ONLY
   </div>
@@ -890,7 +901,12 @@ let state = {
 
 const TOTAL_PUZZLES = ROOMS.reduce((s, r) => s + r.puzzles.length, 0);
 
+let helpEnabled = true;
+
 function startGame() {
+  const ht = document.getElementById('helpToggle');
+  helpEnabled = ht ? ht.checked : true;
+  document.body.classList.toggle('assessment-mode', !helpEnabled);
   state = { room: 0, puzzle: 0, score: 0, totalQ: 0, attempts: 0, orderPlaced: [], answered: false };
   showScreen('screen-puzzle');
   buildHudProgress();
@@ -985,8 +1001,8 @@ function renderPuzzle() {
   for (let i = 0; i < 3; i++) html += `<div class="attempt-dot" id="adot-${i}"></div>`;
   html += `</div>`;
 
-  // Grammar help
-  if (pz.help) {
+  // Grammar help (hidden in assessment mode)
+  if (pz.help && helpEnabled) {
     html += `<button class="help-btn" onclick="toggleHelp()">📖 Grammar hint</button>`;
     html += `<div class="grammar-help" id="gramHelp">`;
     html += `<strong>${pz.help.title}</strong>`;
